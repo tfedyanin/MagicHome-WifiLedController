@@ -22,7 +22,7 @@ public class LedControllerDiscovery {
 
     private DatagramSocket socket;
 
-    public LedControllerDiscovery() throws SocketException {
+    private LedControllerDiscovery() throws SocketException {
         socket = new DatagramSocket();
         socket.setSoTimeout(DISCOVERY_TIMEOUT_MILLIS);
     }
@@ -33,7 +33,7 @@ public class LedControllerDiscovery {
      * @return набор обнаруженных устройств (может быть пустым)
      * @throws IOException
      */
-    public Set<LedController> discoveryLedControllers() throws IOException {
+    private Set<LedController> discoveryLedControllers() throws IOException {
         if (sendDiscovery()) {
             return listenDiscovery();
         }
@@ -45,7 +45,7 @@ public class LedControllerDiscovery {
 
     private Set<LedController> listenDiscovery() {
         byte[] buf = new byte[256];
-        ArrayList<DatagramPacket> datagramPackets = new ArrayList<DatagramPacket>();
+        ArrayList<DatagramPacket> datagramPackets = new ArrayList<>();
         while (true){
             DatagramPacket packet = new DatagramPacket(buf, buf.length);
             try {
@@ -63,7 +63,7 @@ public class LedControllerDiscovery {
     }
 
     private Set<LedController> parsePackets(List<DatagramPacket> packets) {
-        Set<LedController> controllers = new HashSet<LedController>();
+        Set<LedController> controllers = new HashSet<>();
         for (DatagramPacket packet : packets) {
             String str = new String(packet.getData());
             String[] tokens = str.split(",");

@@ -4,12 +4,12 @@ package ru.ittim.openhab.ledbinding;
  * Бин, описывающий wifi-контроллер светодиодной ленты
  * Created by Timofey on 21.06.2016.
  */
-public class LedController {
+class LedController {
     private final String host;
     private final String mac;
     private final String model;
 
-    public LedController(String host, String mac, String model) {
+    LedController(String host, String mac, String model) {
         this.host = host;
         this.mac = mac;
         this.model = model;
@@ -43,9 +43,7 @@ public class LedController {
 
         LedController that = (LedController) o;
 
-        if (!host.equals(that.host)) return false;
-        if (!mac.equals(that.mac)) return false;
-        return model.equals(that.model);
+        return host.equals(that.host) && mac.equals(that.mac) && model.equals(that.model);
 
     }
 
