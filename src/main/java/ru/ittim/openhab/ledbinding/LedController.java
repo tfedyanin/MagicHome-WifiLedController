@@ -6,6 +6,8 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Бин, описывающий wifi-контроллер светодиодной ленты
@@ -17,7 +19,7 @@ class LedController {
 
     //сообщение контроллеру, на который приходит ответ длиной 14
     private final static byte[] MSG = {(byte) 0x81, (byte) 0x8a, (byte) 0x8b, (byte) 0x96};
-    private static final int TIMEOUT = 500;
+    private static final int TIMEOUT = 1000;
 
     private final String host;
     private final String mac;
@@ -25,16 +27,19 @@ class LedController {
     private ControllerType type;
     private PowerState power;
     private FunctionalModeRgb mode;
+    private LedStripType strip;
+    private ControllerChannels channels;
 
     private Socket socket;
 
-    LedController(String host, String mac, String model) {
+    LedController(String host, String mac, String model, LedStripType strip) {
         this.host = host;
         this.mac = mac;
         this.model = model;
         this.type = ControllerType.UNKNOWN;
         this.power = PowerState.UNKNOWN;
         this.mode = FunctionalModeRgb.UNKNOWN;
+        this.strip = strip;
 
         try {
             socket = new Socket(host, DEFAULT_CONTROLLER_PORT);
@@ -42,6 +47,10 @@ class LedController {
         } catch (IOException e) {
             logger.error("Не удалось создать подключение к контроллеру " + this, DEFAULT_CONTROLLER_PORT);
         }
+    }
+
+    public LedController(String host, String mac, String model) {
+        this(host, mac, model, LedStripType.UNKNOWN);
     }
 
     public String getHost() {
@@ -77,6 +86,8 @@ class LedController {
                 ", type=" + type +
                 ", power=" + power +
                 ", mode=" + mode +
+                ", strip=" + strip +
+                ", channels=" + channels +
                 '}';
     }
 
@@ -106,15 +117,16 @@ class LedController {
      * 02 - c - on/off
      * 03 - d - mode
      * 04 - e - f(speed) [31 -1] -> [0 100]
-     * 05 - f - red [0-255]*brightness
-     * 06 - g - green
-     * 07 - h - blue
-     * 08 - i -
-     * 09 - j -
-     * 10 - k -
-     * 11 - l -
+     * 05 - f - 01
+     * 06 - g - red [0-255]*brightness
+     * 07 - h - green
+     * 08 - i - blue
+     * 09 - j - ww channel
+     * 10 - k - 01
+     * 11 - l - cw chanenl
      * 12 - m - f0 when RGB, RGBW, RGBWW and
-     * 13 - n -
+     * 13 - n - ??
+     *
      * @return
      */
     public boolean init() {
@@ -123,6 +135,7 @@ class LedController {
             InputStream in = socket.getInputStream();
             DataOutputStream dos = new DataOutputStream(out);
             dos.write(MSG);
+            dos.flush();
             byte[] bytes = new byte[14];
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             int len;
@@ -138,27 +151,17 @@ class LedController {
                 return false;
             }
             byte[] response = baos.toByteArray();
-            if ((response[0] != -0x7f) || (response[1] !=0x25)) {
+            if ((response[0] != -0x7f) || (response[1] != 0x25)) {
                 logger.error("Получен ответ некорректной длины. Инициализация контроллера не удалась.");
                 return false;
             }
 
             this.power = PowerState.get(response[2]);
             this.mode = FunctionalModeRgb.get(response[3]);
-            //todo Дополнить корректной проверкой
+            //todo Соответствие реальной ленты состоянию контроллера
             this.type = ControllerType.get(response[12]);
-
-            System.out.println("r " + Integer.toHexString(response[6])+" "+response[6]);
-            System.out.println("g " + Integer.toHexString(response[7])+" "+response[7]);
-            System.out.println("b " + Integer.toHexString(response[8])+" "+response[8]);
-            System.out.println("9 " + Integer.toHexString(response[9])+" "+response[9]);
-            System.out.println("10 " + Integer.toHexString(response[10])+" "+response[10]);
-            System.out.println("11 " + Integer.toHexString(response[11])+" "+response[11]);
-            System.out.println("12 " + Integer.toHexString(response[12])+" "+response[12]);
-            System.out.println("13 " + Integer.toHexString(response[13])+" "+response[13]);
+            this.channels = new ControllerChannels(response[6], response[7], response[8], response[9], response[11]);
             System.out.println(Hex.encodeHexString(response));
-
-            System.out.println(this);
             return true;
 
 
@@ -168,10 +171,47 @@ class LedController {
         }
     }
 
+    public boolean setPowerState(PowerState state) {
+        try {
+            OutputStream out = socket.getOutputStream();
+            InputStream in = socket.getInputStream();
+            DataOutputStream dos = new DataOutputStream(out);
+            byte[] command = state.getCommand();
+            dos.write(command);
+            dos.flush();
+            byte[] bytes = new byte[command.length];
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            int len;
+            while ((len = in.read(bytes)) > -1) {
+                baos.write(bytes, 0, len);
+                if (baos.size() == command.length) {
+                    break;
+                }
+            }
+            boolean b = Arrays.equals(baos.toByteArray(), command);
+            // TODO: 24.06.2016 Дополнительная обработка и логирование
+            return b;
+        } catch (IOException e) {
+            logger.error("Сокет не операбелен", e);
+            return false;
+        }
+    }
+
+    public boolean turnOn() {
+        return setPowerState(PowerState.ON);
+    }
+
+    public boolean turnOff() {
+        return setPowerState(PowerState.OFF);
+    }
 
 
-    public static void main(String[] args) {
-        LedController controller = new LedController("192.168.1.181", "ACCF239939B4", "HF-LPB100-ZJ200");
+    public static void main(String[] args) throws InterruptedException {
+        LedController controller = new LedController("192.168.1.181", "ACCF239939B4", "HF-LPB100-ZJ200", LedStripType.RGB);
         controller.init();
+        System.out.println(controller);
+        controller.turnOff();
+
+
     }
 }

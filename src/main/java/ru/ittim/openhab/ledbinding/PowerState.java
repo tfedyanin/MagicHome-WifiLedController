@@ -4,7 +4,7 @@ package ru.ittim.openhab.ledbinding;
  * Created by Timofey on 23.06.2016.
  */
 public enum PowerState {
-    UNKNOWN(0x00),
+    UNKNOWN(0xffff),
     ON(0x23),
     OFF(0x24),;
 
@@ -21,5 +21,17 @@ public enum PowerState {
             }
         }
         return UNKNOWN;
+    }
+
+    public byte[] getCommand() {
+        if (this.equals(UNKNOWN)) {
+            throw new  UnsupportedOperationException("Невозможно установить неизветсное (UNKNOWN) состояние");
+        }
+        byte[] bytes = new byte[3];
+        bytes[0] =(byte)0x71;
+        bytes[1] =(byte)id;
+        bytes[2] =(byte)0x0f;
+
+        return Utils.withCheckSum(bytes);
     }
 }
