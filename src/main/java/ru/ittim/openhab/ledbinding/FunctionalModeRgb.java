@@ -31,6 +31,7 @@ public enum FunctionalModeRgb {
     SEVEN_COLOR_CROSS_JUMP(0x38);
 
     private final int id;
+    private int speed = -1;
 
     FunctionalModeRgb(int id) {
         this.id = id;
@@ -43,5 +44,26 @@ public enum FunctionalModeRgb {
             }
         }
         return UNKNOWN;
+    }
+
+    public int getSpeed() {
+        return speed;
+    }
+
+    public int getPercentSpeed() {
+        return (-speed + 31) * 10 / 3;
+    }
+
+    public FunctionalModeRgb setSpeed(int speed) {
+        this.speed = speed;
+        return this;
+    }
+
+    public FunctionalModeRgb setPercentSpeed(int speed) {
+        if ((speed < 0) || (speed > 100)) {
+            throw new IllegalArgumentException("Скорость должяна быть в интервале [0, 100]");
+        }
+        this.speed = -(speed * 3 / 10 - 31);
+        return this;
     }
 }

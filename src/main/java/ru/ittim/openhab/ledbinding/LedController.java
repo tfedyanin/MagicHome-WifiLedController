@@ -85,7 +85,7 @@ class LedController {
                 ", model='" + model + '\'' +
                 ", type=" + type +
                 ", power=" + power +
-                ", mode=" + mode +
+                ", mode=" + mode + "(" + mode.getSpeed() + "-" +mode.getPercentSpeed() + "%)"  +
                 ", strip=" + strip +
                 ", channels=" + channels +
                 '}';
@@ -116,8 +116,8 @@ class LedController {
      * 01 - b - always 0x25
      * 02 - c - on/off
      * 03 - d - mode
-     * 04 - e - f(speed) [31 -1] -> [0 100]
-     * 05 - f - 01
+     * 04 - e -
+     * 05 - f - f(speed) [31 -1] -> [0 100]
      * 06 - g - red [0-255]*brightness
      * 07 - h - green
      * 08 - i - blue
@@ -158,6 +158,7 @@ class LedController {
 
             this.power = PowerState.get(response[2]);
             this.mode = FunctionalModeRgb.get(response[3]);
+            this.mode.setSpeed(response[5]);
             //todo Соответствие реальной ленты состоянию контроллера
             this.type = ControllerType.get(response[12]);
             this.channels = new ControllerChannels(response[6], response[7], response[8], response[9], response[11]);
@@ -222,15 +223,15 @@ class LedController {
 
     public static void main(String[] args) throws InterruptedException {
         LedController controller = new LedController("192.168.1.181", "ACCF239939B4", "HF-LPB100-ZJ200", LedStripType.RGB);
-//        controller.init();
+        controller.init();
         System.out.println(controller);
 //        controller.turnOff();
 //        controller.turnOn();
 //        ControllerChannels channels = new ControllerChannels((byte)0,(byte)0,(byte)0,(byte)0,(byte)0);
 //        ControllerChannels channels = new ControllerChannels((byte)0xff,(byte)0xff,(byte)0xff,(byte)0,(byte)0);
 //        ControllerChannels channels = new ControllerChannels((byte)0,(byte)0,(byte)0,(byte)0xff,(byte)0xff);
-        ControllerChannels channels = new ControllerChannels((byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff);
-        controller.setChannels(channels);
+//        ControllerChannels channels = new ControllerChannels((byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff);
+//        controller.setChannels(channels);
 
     }
 }
