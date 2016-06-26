@@ -205,13 +205,32 @@ class LedController {
         return setPowerState(PowerState.OFF);
     }
 
+    public boolean setChannels(ControllerChannels channels) {
+        try {
+            OutputStream out = socket.getOutputStream();
+            DataOutputStream dos = new DataOutputStream(out);
+            byte[] command = channels.getChannelCommand();
+            dos.write(command);
+            dos.flush();
+            return true;
+        } catch (IOException e) {
+            logger.error("Сокет не операбелен", e);
+            return false;
+        }
+    }
+
 
     public static void main(String[] args) throws InterruptedException {
         LedController controller = new LedController("192.168.1.181", "ACCF239939B4", "HF-LPB100-ZJ200", LedStripType.RGB);
-        controller.init();
+//        controller.init();
         System.out.println(controller);
-        controller.turnOff();
-
+//        controller.turnOff();
+//        controller.turnOn();
+//        ControllerChannels channels = new ControllerChannels((byte)0,(byte)0,(byte)0,(byte)0,(byte)0);
+//        ControllerChannels channels = new ControllerChannels((byte)0xff,(byte)0xff,(byte)0xff,(byte)0,(byte)0);
+//        ControllerChannels channels = new ControllerChannels((byte)0,(byte)0,(byte)0,(byte)0xff,(byte)0xff);
+        ControllerChannels channels = new ControllerChannels((byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff);
+        controller.setChannels(channels);
 
     }
 }
