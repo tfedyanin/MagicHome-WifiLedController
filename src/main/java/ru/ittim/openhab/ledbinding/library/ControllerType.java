@@ -1,4 +1,4 @@
-package ru.ittim.openhab.ledbinding;
+package ru.ittim.openhab.ledbinding.library;
 
 /**
  * Created by Timofey on 23.06.2016.

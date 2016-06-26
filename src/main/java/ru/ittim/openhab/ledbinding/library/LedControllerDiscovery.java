@@ -1,4 +1,4 @@
-package ru.ittim.openhab.ledbinding;
+package ru.ittim.openhab.ledbinding.library;
 
 
 import org.apache.logging.log4j.LogManager;

@@ -1,4 +1,4 @@
-package ru.ittim.openhab.ledbinding;
+package ru.ittim.openhab.ledbinding.library;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.logging.log4j.LogManager;
@@ -7,7 +7,6 @@ import org.apache.logging.log4j.Logger;
 import java.io.*;
 import java.net.Socket;
 import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Бин, описывающий wifi-контроллер светодиодной ленты
