@@ -31,7 +31,7 @@ public enum FunctionalModeRgb {
     SEVEN_COLOR_CROSS_JUMP(0x38);
 
     private final int id;
-    private int speed = -1;
+    private int speed = 0x1f;
 
     FunctionalModeRgb(int id) {
         this.id = id;
@@ -65,5 +65,17 @@ public enum FunctionalModeRgb {
         }
         this.speed = -(speed * 3 / 10 - 31);
         return this;
+    }
+
+    public byte[] getCommand() {
+        if ((this.id >= 0x25) && (this.id <= 0x38)) {
+            byte[] command = new byte[4];
+            command[0] = 0x61;
+            command[1] = (byte) this.id;
+            command[2] = (byte) this.speed;
+            command[3] = 0x0f;
+            return Utils.withCheckSum(command);
+        }
+        throw new UnsupportedOperationException("Для данного мода не сущетвует команды");
     }
 }

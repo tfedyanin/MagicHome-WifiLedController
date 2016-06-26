@@ -220,6 +220,20 @@ class LedController {
         }
     }
 
+    public boolean setMode(FunctionalModeRgb mode) {
+        try {
+            OutputStream out = socket.getOutputStream();
+            DataOutputStream dos = new DataOutputStream(out);
+            byte[] command = mode.getCommand();
+            dos.write(command);
+            dos.flush();
+            return true;
+        } catch (IOException e) {
+            logger.error("Сокет не операбелен", e);
+            return false;
+        }
+
+    }
 
     public static void main(String[] args) throws InterruptedException {
         LedController controller = new LedController("192.168.1.181", "ACCF239939B4", "HF-LPB100-ZJ200", LedStripType.RGB);
@@ -232,6 +246,7 @@ class LedController {
 //        ControllerChannels channels = new ControllerChannels((byte)0,(byte)0,(byte)0,(byte)0xff,(byte)0xff);
 //        ControllerChannels channels = new ControllerChannels((byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff);
 //        controller.setChannels(channels);
+        controller.setMode(FunctionalModeRgb.GREEN_STROBE_FADE.setPercentSpeed(100));
 
     }
 }
