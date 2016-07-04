@@ -1,6 +1,7 @@
 package ru.ittim.openhab.ledbinding.library;
 
 /**
+ * Power state of controller
  * Created by Timofey on 23.06.2016.
  */
 public enum PowerState {
@@ -25,7 +26,7 @@ public enum PowerState {
 
     public byte[] getCommand() {
         if (this.equals(UNKNOWN)) {
-            throw new  UnsupportedOperationException("Невозможно установить неизветсное (UNKNOWN) состояние");
+            throw new  UnsupportedOperationException("Can't set UNKNOWN state. Use ON or OFF states.");
         }
         byte[] bytes = new byte[3];
         bytes[0] =(byte)0x71;

@@ -1,8 +1,9 @@
 package ru.ittim.openhab.ledbinding.library;
 
 /**
- * Functional modes for RGB, RGBW, RGBWW
+ * Functional modes for RGB, RGBW, RGBWW and speed for selected mode
  * Created by Timofey on 23.06.2016.
+ * // TODO: 04.07.2016 take out speed from enum!!! in bean, contains FunctionalModeRgb and speed
  */
 public enum FunctionalModeRgb {
     // TODO: 23.06.2016 Music, Microphone, Photo
@@ -31,6 +32,9 @@ public enum FunctionalModeRgb {
     SEVEN_COLOR_CROSS_JUMP(0x38);
 
     private final int id;
+    /**
+     * speed 31 (min speed) - 1(max speed)
+     */
     private int speed = 0x1f;
 
     FunctionalModeRgb(int id) {
@@ -50,6 +54,10 @@ public enum FunctionalModeRgb {
         return speed;
     }
 
+    /**
+     * transform speed to percents(f: [31 - 1] -> [0 100]
+     * @return speed in percent
+     */
     public int getPercentSpeed() {
         return (-speed + 31) * 10 / 3;
     }
@@ -59,6 +67,11 @@ public enum FunctionalModeRgb {
         return this;
     }
 
+    /**
+     * set speed in percents(f: [0 100] -> ]31 - 1]
+     * @param speed in percents
+     * @return
+     */
     public FunctionalModeRgb setPercentSpeed(int speed) {
         if ((speed < 0) || (speed > 100)) {
             throw new IllegalArgumentException("Скорость должяна быть в интервале [0, 100]");

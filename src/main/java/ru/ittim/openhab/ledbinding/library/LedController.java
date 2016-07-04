@@ -9,15 +9,20 @@ import java.net.Socket;
 import java.util.Arrays;
 
 /**
- * Бин, описывающий wifi-контроллер светодиодной ленты
+ * MagicHome wifi led controller
  * Created by Timofey on 21.06.2016.
  */
 class LedController {
+    //From reverse engineering (Controller bought in May 2016)
     private final static int DEFAULT_CONTROLLER_PORT = 5577;
     private final static Logger logger = LogManager.getLogger();
 
-    //сообщение контроллеру, на который приходит ответ длиной 14
-    private final static byte[] MSG = {(byte) 0x81, (byte) 0x8a, (byte) 0x8b, (byte) 0x96};
+    private final static byte[] REQUEST_STATE_MSG = {(byte) 0x81, (byte) 0x8a, (byte) 0x8b, (byte) 0x96};
+    /**
+     * in milliseconds
+     *
+     * @see java.net.Socket#setSoTimeout(int)
+     */
     private static final int TIMEOUT = 1000;
 
     private final String host;
@@ -29,9 +34,12 @@ class LedController {
     private LedStripType strip;
     private ControllerChannels channels;
 
+    /**
+     * message exchange with controller
+     */
     private Socket socket;
 
-    LedController(String host, String mac, String model, LedStripType strip) {
+    private LedController(String host, String mac, String model, LedStripType strip) {
         this.host = host;
         this.mac = mac;
         this.model = model;
@@ -44,11 +52,11 @@ class LedController {
             socket = new Socket(host, DEFAULT_CONTROLLER_PORT);
             socket.setSoTimeout(TIMEOUT);
         } catch (IOException e) {
-            logger.error("Не удалось создать подключение к контроллеру " + this, DEFAULT_CONTROLLER_PORT);
+            logger.error("Could not create a connection to the controller " + this, e);
         }
     }
 
-    public LedController(String host, String mac, String model) {
+    LedController(String host, String mac, String model) {
         this(host, mac, model, LedStripType.UNKNOWN);
     }
 
@@ -84,7 +92,7 @@ class LedController {
                 ", model='" + model + '\'' +
                 ", type=" + type +
                 ", power=" + power +
-                ", mode=" + mode + "(" + mode.getSpeed() + "-" +mode.getPercentSpeed() + "%)"  +
+                ", mode=" + mode + "(" + mode.getSpeed() + "-" + mode.getPercentSpeed() + "%)" +
                 ", strip=" + strip +
                 ", channels=" + channels +
                 '}';
@@ -110,30 +118,32 @@ class LedController {
     }
 
     /**
-     * [a b c d e f j h i j k l m n]
-     * 00 - a - always 0x81 (-0x7f)
-     * 01 - b - always 0x25
-     * 02 - c - on/off
-     * 03 - d - mode
-     * 04 - e -
-     * 05 - f - f(speed) [31 -1] -> [0 100]
-     * 06 - g - red [0-255]*brightness
-     * 07 - h - green
-     * 08 - i - blue
-     * 09 - j - ww channel
-     * 10 - k - 01
-     * 11 - l - cw chanenl
-     * 12 - m - f0 when RGB, RGBW, RGBWW and
-     * 13 - n - ??
-     *
-     * @return
+     * Send request message {@link LedController#REQUEST_STATE_MSG} to controller and parse response message (14 bytes)
+     *<pre>
+     * Response structure (reverse engineering with WireShark):
+     * response[00] - always 0x81 (-0x7f)
+     * response[01] - always 0x25
+     * response[02] - on/off
+     * response[03] - mode
+     * response[04] - ???
+     * response[05] - f(speed) [31 -1] -> [0 100]
+     * response[06] - red [0-255]*brightness
+     * response[07] - green
+     * response[08] - blue
+     * response[09] - ww channel
+     * response[10] - 01
+     * response[11] - cw chanenl
+     * response[12] - f0 when RGB, RGBW, RGBWW and 0f when DIM, WW, CW
+     * response[13] - checksum
+     * </pre>
+     * @return true if response parsed and correct, else false
      */
-    public boolean init() {
+    private boolean init() {
         try {
             OutputStream out = socket.getOutputStream();
             InputStream in = socket.getInputStream();
             DataOutputStream dos = new DataOutputStream(out);
-            dos.write(MSG);
+            dos.write(REQUEST_STATE_MSG);
             dos.flush();
             byte[] bytes = new byte[14];
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -146,19 +156,18 @@ class LedController {
             }
 
             if (baos.size() != 14) {
-                logger.error("Получен ответ некорректной длины на запрос состояний.");
+                logger.error("Received response message with incorrect length");
                 return false;
             }
             byte[] response = baos.toByteArray();
             if ((response[0] != -0x7f) || (response[1] != 0x25)) {
-                logger.error("Получен ответ некорректной длины. Инициализация контроллера не удалась.");
+                logger.error("Wrong response message structure");
                 return false;
             }
 
             this.power = PowerState.get(response[2]);
             this.mode = FunctionalModeRgb.get(response[3]);
             this.mode.setSpeed(response[5]);
-            //todo Соответствие реальной ленты состоянию контроллера
             this.type = ControllerType.get(response[12]);
             this.channels = new ControllerChannels(response[6], response[7], response[8], response[9], response[11]);
             System.out.println(Hex.encodeHexString(response));
@@ -166,12 +175,12 @@ class LedController {
 
 
         } catch (IOException e) {
-            logger.error("Сокет не операбелен", e);
+            logger.error("Socket is not operable", e);
             return false;
         }
     }
 
-    public boolean setPowerState(PowerState state) {
+    private boolean setPowerState(PowerState state) {
         try {
             OutputStream out = socket.getOutputStream();
             InputStream in = socket.getInputStream();
@@ -188,20 +197,19 @@ class LedController {
                     break;
                 }
             }
-            boolean b = Arrays.equals(baos.toByteArray(), command);
-            // TODO: 24.06.2016 Дополнительная обработка и логирование
-            return b;
+            return Arrays.equals(baos.toByteArray(), command);
         } catch (IOException e) {
-            logger.error("Сокет не операбелен", e);
+            logger.error("Socket is not operable", e);
             return false;
         }
     }
 
-    public boolean turnOn() {
+
+    private boolean turnOn() {
         return setPowerState(PowerState.ON);
     }
 
-    public boolean turnOff() {
+    private boolean turnOff() {
         return setPowerState(PowerState.OFF);
     }
 
@@ -234,18 +242,22 @@ class LedController {
 
     }
 
-    public static void main(String[] args) throws InterruptedException {
+    /**
+     * Examples
+     * @param ignored not used
+     */
+    public static void main(String[] ignored)  {
         LedController controller = new LedController("192.168.1.181", "ACCF239939B4", "HF-LPB100-ZJ200", LedStripType.RGB);
         controller.init();
         System.out.println(controller);
-//        controller.turnOff();
+        controller.turnOff();
 //        controller.turnOn();
 //        ControllerChannels channels = new ControllerChannels((byte)0,(byte)0,(byte)0,(byte)0,(byte)0);
 //        ControllerChannels channels = new ControllerChannels((byte)0xff,(byte)0xff,(byte)0xff,(byte)0,(byte)0);
 //        ControllerChannels channels = new ControllerChannels((byte)0,(byte)0,(byte)0,(byte)0xff,(byte)0xff);
 //        ControllerChannels channels = new ControllerChannels((byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff);
 //        controller.setChannels(channels);
-        controller.setMode(FunctionalModeRgb.GREEN_STROBE_FADE.setPercentSpeed(100));
+//        controller.setMode(FunctionalModeRgb.GREEN_STROBE_FADE.setPercentSpeed(100));
 
     }
 }

@@ -4,16 +4,18 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 /**
+ * Channels state
+ * It's possible to set only rgb state nor cw+ww state
  * Created by Timofey on 24.06.2016.
  */
-public class ControllerChannels {
+class ControllerChannels {
     private final byte r;
     private final byte g;
     private final byte b;
     private final byte ww;
     private final byte cw;
 
-    public ControllerChannels(byte r, byte g, byte b, byte ww, byte cw) {
+    ControllerChannels(byte r, byte g, byte b, byte ww, byte cw) {
         this.r = r;
         this.g = g;
         this.b = b;
@@ -52,9 +54,17 @@ public class ControllerChannels {
                 "}";
     }
 
-    public byte[] rgbCommand(byte r, byte g, byte b) {
+    /**
+     * Prepare command to set rgb channels
+     *
+     * @param r - red color (1 channel)
+     * @param g - green color (2 channel)
+     * @param b - blue color (3 channel)
+     * @return rgb command
+     */
+    private byte[] rgbCommand(byte r, byte g, byte b) {
         byte[] command = new byte[8];
-        command[0] = (byte)0x31;
+        command[0] = (byte) 0x31;
         command[1] = r;
         command[2] = g;
         command[3] = b;
@@ -65,9 +75,15 @@ public class ControllerChannels {
         return Utils.withCheckSum(command);
     }
 
-    public byte[] wwcwCommand(byte ww, byte cw) {
+    /**
+     * Prepare command to set rgb channels
+     * @param ww - warn white (4 channel)
+     * @param cw - cold  white (5 channel)
+     * @return ww-cw command
+     */
+    private byte[] wwcwCommand(byte ww, byte cw) {
         byte[] command = new byte[8];
-        command[0] = (byte)0x31;
+        command[0] = (byte) 0x31;
         command[1] = 0;
         command[2] = 0;
         command[3] = 0;
@@ -78,7 +94,12 @@ public class ControllerChannels {
         return Utils.withCheckSum(command);
     }
 
-    public byte[] getChannelCommand() throws IOException {
+    /**
+     * Generate commands for rgb channels and ww-cw channels and aggregate its in one commad
+     * @return commad for set rgb-ww-cw channels
+     * @throws IOException
+     */
+    byte[] getChannelCommand() throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         baos.write(rgbCommand(r, g, b));
         baos.write(wwcwCommand(ww, cw));

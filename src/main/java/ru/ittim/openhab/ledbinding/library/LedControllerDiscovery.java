@@ -9,13 +9,22 @@ import java.net.*;
 import java.util.*;
 
 /**
- * Обнаружение wifi-контроллеров светодиодной ленты
+ * Discovery controllers in LAN
  * Created by Timofey on 21.06.2016.
  */
 public class LedControllerDiscovery {
+    /**
+     * From reverse-engineering
+     */
     private static final int DISCOVERY_PORT = 48899;
+    /**
+     * From reverse-engineering
+     */
     private static final String DISCOVERY_ADDRESS = "255.255.255.255";
     private static final int DISCOVERY_TIMEOUT_MILLIS = 1000;
+    /**
+     * From reverse-engineering
+     */
     private static final String DISCOVERY_DATA = "HF-A11ASSISTHREAD";
 
     private static Logger logger = LogManager.getLogger();
@@ -28,19 +37,19 @@ public class LedControllerDiscovery {
     }
 
     /**
-     * Метод посылает широковещательную рассылку 255.255.255.255 на порт 48899 и слушает UDP ответы, в которых
-     * содержится информация об обнаруженных устройствах
-     * @return набор обнаруженных устройств (может быть пустым)
+     * This method broadcast to 255.255.255.255:48899 and listen answers, which contains information about detected
+     * devices
+     * @return set of detected devices
      * @throws IOException
      */
     private Set<LedController> discoveryLedControllers() throws IOException {
         if (sendDiscovery()) {
             return listenDiscovery();
         }
-        logger.error("Не удалось отправить широковещательную расслку для обнаружения wifi-контроллеров. " +
-                "Возможна ошибка в создании UDP-сокета");
-        throw new IOException("Не удалось отправить широковещательную расслку для обнаружения wifi-контроллеров. " +
-                "Возможна ошибка в создании UDP-сокета");
+        String message = "Unable send broadcast. " +
+                "Maybe error in socket creation";
+        logger.error(message);
+        throw new IOException(message);
     }
 
     private Set<LedController> listenDiscovery() {
@@ -52,10 +61,10 @@ public class LedControllerDiscovery {
                 socket.receive(packet);
                 datagramPackets.add(packet);
             } catch (SocketTimeoutException e) {
-                logger.debug("Обнаружение завершено. Получено " + datagramPackets.size() + " ответов");
+                logger.debug("Discovery is completed. Received " + datagramPackets.size() + " answers");
                 break;
             } catch (IOException e) {
-                logger.error("В ходе обнаружения возникла ошибка", e);
+                logger.error("Discovery is failed", e);
                 break;
             }
         }
@@ -68,7 +77,7 @@ public class LedControllerDiscovery {
             String str = new String(packet.getData());
             String[] tokens = str.split(",");
             if (tokens.length != 3) {
-                logger.error("Пакет с адреса " + packet.getSocketAddress() + " содержит неизветный формат данных: " +
+                logger.error("Answer from " + packet.getSocketAddress() + " has wrong payload: " +
                 str);
             } else {
                 controllers.add(new LedController(tokens[0], tokens[1], tokens[2]));
@@ -94,7 +103,7 @@ public class LedControllerDiscovery {
             Set<LedController> controllers = discovery.discoveryLedControllers();
             controllers.forEach(System.out::println);
         } catch (IOException e) {
-            logger.error("Что-то пошло не так....", e);
+            logger.error("Something is wrong....", e);
         }
     }
 }

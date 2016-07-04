@@ -1,6 +1,9 @@
 package ru.ittim.openhab.ledbinding.library;
 
 /**
+ * Controller mode
+ * RGB - it is possible to set rgb color, warn and cold white separately
+ * DIM - another mod (not supported yet)
  * Created by Timofey on 23.06.2016.
  */
 public enum ControllerType {
@@ -14,7 +17,6 @@ public enum ControllerType {
         this.id = id;
     }
 
-    // TODO: 23.06.2016 Support others modes RGBW, RGBWW, CIT ...?
     public static ControllerType get(int id) {
         for (ControllerType type : values()) {
             if (type.id == id) {
