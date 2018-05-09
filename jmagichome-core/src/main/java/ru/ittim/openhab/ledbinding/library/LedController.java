@@ -108,19 +108,6 @@ class LedController {
             default:
                 throw new RuntimeException("Unsupported operation type " + args[1]);
         }
-
-
-//        controller.init();
-//        System.out.println(controller);
-//        controller.turnOff();
-//        controller.turnOn();
-////        ControllerChannels channels = new ControllerChannels(0,0,0,0,0);
-//        ControllerChannels channels = new ControllerChannels(0xff, 0xff, 0xff, 0, 0);
-////        ControllerChannels channels = new ControllerChannels(0,0,0,0xff,0xff);
-////        ControllerChannels channels = new ControllerChannels(0xff,0xff,0xff,0xff,0xff);
-//        controller.setChannels(channels);
-////        controller.setMode(FunctionalModeRgb.GREEN_STROBE_FADE.setPercentSpeed(100));
-
     }
 
     public String getHost() {
