@@ -15,12 +15,12 @@ class ControllerChannels {
     private final byte ww;
     private final byte cw;
 
-    ControllerChannels(byte r, byte g, byte b, byte ww, byte cw) {
-        this.r = r;
-        this.g = g;
-        this.b = b;
-        this.ww = ww;
-        this.cw = cw;
+    ControllerChannels(int r, int g, int b, int ww, int cw) {
+        this.r = (byte) r;
+        this.g = (byte) g;
+        this.b = (byte) b;
+        this.ww = (byte) ww;
+        this.cw = (byte) cw;
     }
 
     public byte getR() {
@@ -96,7 +96,7 @@ class ControllerChannels {
 
     /**
      * Generate commands for rgb channels and ww-cw channels and aggregate its in one commad
-     * @return commad for set rgb-ww-cw channels
+     * @return command for set rgb-ww-cw channels
      * @throws IOException
      */
     byte[] getChannelCommand() throws IOException {

@@ -1,27 +1,30 @@
 package ru.ittim.openhab.ledbinding.library;
 
 import org.apache.commons.codec.binary.Hex;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.Socket;
 import java.util.Arrays;
+import java.util.Random;
+import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * MagicHome wifi led controller
  * Created by Timofey on 21.06.2016.
  */
 class LedController {
-    //From reverse engineering (Controller bought in May 2016)
+    //From reverse engineering (Controller bought in May 2016, v1)
     private final static int DEFAULT_CONTROLLER_PORT = 5577;
-    private final static Logger logger = LogManager.getLogger();
+    private final static Logger logger = LoggerFactory.getLogger(LedController.class);
 
     private final static byte[] REQUEST_STATE_MSG = {(byte) 0x81, (byte) 0x8a, (byte) 0x8b, (byte) 0x96};
     /**
      * in milliseconds
      *
-     * @see java.net.Socket#setSoTimeout(int)
+     * @see Socket#setSoTimeout(int)
      */
     private static final int TIMEOUT = 1000;
 
@@ -58,6 +61,66 @@ class LedController {
 
     LedController(String host, String mac, String model) {
         this(host, mac, model, LedStripType.UNKNOWN);
+    }
+
+    /**
+     * Examples
+     *
+     * @param args - first broadcast address, second operation type: ON, OFF, RANDOM
+     */
+    public static void main(String[] args) {
+        if (args.length < 1) {
+            logger.info("Provide discovery broadcast address as first argument. By default used 192.168.1.255");
+        }
+        if (args.length < 2) {
+            logger.info("Provide operation type (ON, OFF, RANDOM) as second argument. By default used RANDOM");
+        }
+        DiscoveryFinder discovery = new DiscoveryFinder.DiscoveryFinderBuilder()
+                .discoveryAddress(args.length > 0 ? args[0] : "192.168.1.255")
+                .build();
+        Set<LedController> controllers = discovery.getControllers();
+        controllers.forEach(it -> {
+            it.init();
+            logger.info("Initialized controller {}", it.toString());
+        });
+        switch (args.length > 1 ? args[1] : "RANDOM") {
+            case "ON":
+                controllers.forEach(it -> {
+                    it.turnOn();
+                    logger.info("Maximum light for {}", it);
+                });
+                break;
+            case "OFF":
+                controllers.forEach(it -> {
+                    it.turnOff();
+                    logger.info("Turn off {}", it);
+                });
+                break;
+            case "RANDOM":
+                final Random random = new Random();
+                Supplier<Integer> r = () -> random.nextInt(256);
+                controllers.forEach(it -> {
+                    it.turnOn();
+                    it.setChannels(new ControllerChannels(r.get(), r.get(), r.get(), r.get(), r.get()));
+                    logger.info("New controller state {}", it);
+                });
+                break;
+            default:
+                throw new RuntimeException("Unsupported operation type " + args[1]);
+        }
+
+
+//        controller.init();
+//        System.out.println(controller);
+//        controller.turnOff();
+//        controller.turnOn();
+////        ControllerChannels channels = new ControllerChannels(0,0,0,0,0);
+//        ControllerChannels channels = new ControllerChannels(0xff, 0xff, 0xff, 0, 0);
+////        ControllerChannels channels = new ControllerChannels(0,0,0,0xff,0xff);
+////        ControllerChannels channels = new ControllerChannels(0xff,0xff,0xff,0xff,0xff);
+//        controller.setChannels(channels);
+////        controller.setMode(FunctionalModeRgb.GREEN_STROBE_FADE.setPercentSpeed(100));
+
     }
 
     public String getHost() {
@@ -119,7 +182,7 @@ class LedController {
 
     /**
      * Send request message {@link LedController#REQUEST_STATE_MSG} to controller and parse response message (14 bytes)
-     *<pre>
+     * <pre>
      * Response structure (reverse engineering with WireShark):
      * response[00] - always 0x81 (-0x7f)
      * response[01] - always 0x25
@@ -136,6 +199,7 @@ class LedController {
      * response[12] - f0 when RGB, RGBW, RGBWW and 0f when DIM, WW, CW
      * response[13] - checksum
      * </pre>
+     *
      * @return true if response parsed and correct, else false
      */
     private boolean init() {
@@ -204,7 +268,6 @@ class LedController {
         }
     }
 
-
     private boolean turnOn() {
         return setPowerState(PowerState.ON);
     }
@@ -239,25 +302,6 @@ class LedController {
             logger.error("Сокет не операбелен", e);
             return false;
         }
-
-    }
-
-    /**
-     * Examples
-     * @param ignored not used
-     */
-    public static void main(String[] ignored)  {
-        LedController controller = new LedController("192.168.1.181", "ACCF239939B4", "HF-LPB100-ZJ200", LedStripType.RGB);
-        controller.init();
-        System.out.println(controller);
-        controller.turnOff();
-//        controller.turnOn();
-//        ControllerChannels channels = new ControllerChannels((byte)0,(byte)0,(byte)0,(byte)0,(byte)0);
-//        ControllerChannels channels = new ControllerChannels((byte)0xff,(byte)0xff,(byte)0xff,(byte)0,(byte)0);
-//        ControllerChannels channels = new ControllerChannels((byte)0,(byte)0,(byte)0,(byte)0xff,(byte)0xff);
-//        ControllerChannels channels = new ControllerChannels((byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff,(byte)0xff);
-//        controller.setChannels(channels);
-//        controller.setMode(FunctionalModeRgb.GREEN_STROBE_FADE.setPercentSpeed(100));
 
     }
 }
