@@ -1,2 +1,3 @@
-rootProject.name = 'led-binding'
+rootProject.name = 'jmagichome'
+include 'jmagichome-core'
 
