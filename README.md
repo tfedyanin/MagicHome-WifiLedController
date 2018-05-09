@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/tfedyanin/MagicHome-WifiLedController.svg?branch=master)](https://travis-ci.com/tfedyanin/MagicHome-WifiLedController)
+
 # JMagicHome
 Library and OpenHAB2 binding for 
 <img src="readme/controller.jpg" width="400" height="400" alt="Фото контроллера" title="Именно такой контроллер использую я"/>
