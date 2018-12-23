@@ -1,31 +1,28 @@
-allprojects {
-    group 'ru.ittim.openhab'
-    version '0.3.2'
+group 'ru.ittim.openhab'
+version '0.3.2'
 
-    apply plugin: 'java'
-    apply plugin: 'jacoco'
+apply plugin: 'java'
+apply plugin: 'jacoco'
 
-    repositories {
-        mavenCentral()
-    }
+repositories {
+    mavenCentral()
 }
 
-task codeCoverageReport(type: JacocoReport) {
-    executionData fileTree(project.rootDir.absolutePath).include("**/build/jacoco/*.exec")
+dependencies {
+    compile 'org.slf4j:slf4j-api:1.7+'
+    runtime 'ch.qos.logback:logback-classic:1.2+'
+    compile 'commons-codec:commons-codec:1.10'
 
-    subprojects.each {
-        sourceSets it.sourceSets.main
-    }
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.1.0'
 
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.1.0'
+}
 
+jacocoTestReport {
     reports {
         xml.enabled true
-        xml.destination file("${buildDir}/reports/jacoco/report.xml")
         html.enabled false
-        csv.enabled false
     }
 }
 
-codeCoverageReport.dependsOn {
-    subprojects*.test
-}
+check.dependsOn jacocoTestReport
