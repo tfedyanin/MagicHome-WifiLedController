@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.com/tfedyanin/MagicHome-WifiLedController.svg?branch=master)](https://travis-ci.com/tfedyanin/MagicHome-WifiLedController)
+[![codecov](https://codecov.io/gh/tfedyanin/MagicHome-WifiLedController/branch/master/graph/badge.svg)](https://codecov.io/gh/tfedyanin/MagicHome-WifiLedController)
 
 # JMagicHome
 Library and OpenHAB2 binding for 
