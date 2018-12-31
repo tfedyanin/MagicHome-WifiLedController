@@ -1,8 +1,9 @@
+plugins {
+    id 'java-library'
+    id 'jacoco'
+}
 group 'ru.ittim.openhab'
-version '0.3.2'
-
-apply plugin: 'java'
-apply plugin: 'jacoco'
+version '0.8.2'
 
 repositories {
     mavenCentral()
@@ -11,7 +12,6 @@ repositories {
 dependencies {
     compile 'org.slf4j:slf4j-api:1.7+'
     runtime 'ch.qos.logback:logback-classic:1.2+'
-    compile 'commons-codec:commons-codec:1.10'
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.1.0'
 
@@ -32,4 +32,9 @@ jacocoTestReport {
     }
 }
 
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+jar.dependsOn sourcesJar
 check.dependsOn jacocoTestReport

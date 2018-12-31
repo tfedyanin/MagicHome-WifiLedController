@@ -1,12 +1,14 @@
 package ru.ittim.openhab.ledbinding.library;
 
-import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
-import java.util.Arrays;
 import java.util.Random;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -15,7 +17,7 @@ import java.util.function.Supplier;
  * MagicHome wifi led controller
  * Created by Timofey on 21.06.2016.
  */
-class LedController {
+public class LedController {
     //From reverse engineering (Controller bought in May 2016, v1)
     private final static int DEFAULT_CONTROLLER_PORT = 5577;
     private final static Logger logger = LoggerFactory.getLogger(LedController.class);
@@ -35,14 +37,14 @@ class LedController {
     private PowerState power;
     private FunctionalModeRgb mode;
     private LedStripType strip;
-    private ControllerChannels channels;
+    private ControllerChannels channels = new ControllerChannels(0, 0, 0, 0, 0);
 
     /**
      * message exchange with controller
      */
     private Socket socket;
 
-    private LedController(String host, String mac, String model, LedStripType strip) {
+    private LedController(String host, String mac, String model, LedStripType strip) throws IOException {
         this.host = host;
         this.mac = mac;
         this.model = model;
@@ -51,15 +53,11 @@ class LedController {
         this.mode = FunctionalModeRgb.UNKNOWN;
         this.strip = strip;
 
-        try {
-            socket = new Socket(host, DEFAULT_CONTROLLER_PORT);
-            socket.setSoTimeout(TIMEOUT);
-        } catch (IOException e) {
-            logger.error("Could not create a connection to the controller " + this, e);
-        }
+        socket = new Socket(host, DEFAULT_CONTROLLER_PORT);
+        socket.setSoTimeout(TIMEOUT);
     }
 
-    LedController(String host, String mac, String model) {
+    public LedController(String host, String mac, String model) throws IOException {
         this(host, mac, model, LedStripType.UNKNOWN);
     }
 
@@ -80,19 +78,31 @@ class LedController {
                 .build();
         Set<LedController> controllers = discovery.getControllers();
         controllers.forEach(it -> {
-            it.init();
+            try {
+                it.init();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             logger.info("Initialized controller {}", it.toString());
         });
         switch (args.length > 1 ? args[1] : "RANDOM") {
             case "ON":
                 controllers.forEach(it -> {
-                    it.turnOn();
+                    try {
+                        it.turnOn();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     logger.info("Maximum light for {}", it);
                 });
                 break;
             case "OFF":
                 controllers.forEach(it -> {
-                    it.turnOff();
+                    try {
+                        it.turnOff();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     logger.info("Turn off {}", it);
                 });
                 break;
@@ -100,8 +110,16 @@ class LedController {
                 final Random random = new Random();
                 Supplier<Integer> r = () -> random.nextInt(256);
                 controllers.forEach(it -> {
-                    it.turnOn();
-                    it.setChannels(new ControllerChannels(r.get(), r.get(), r.get(), r.get(), r.get()));
+                    try {
+                        it.turnOn();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        it.setChannels(new ControllerChannels(r.get(), r.get(), r.get(), r.get(), r.get()));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     logger.info("New controller state {}", it);
                 });
                 break;
@@ -135,17 +153,11 @@ class LedController {
     }
 
     @Override
-    public String toString() {
-        return "LedController{" +
-                "host='" + host + '\'' +
-                ", mac='" + mac + '\'' +
-                ", model='" + model + '\'' +
-                ", type=" + type +
-                ", power=" + power +
-                ", mode=" + mode + "(" + mode.getSpeed() + "-" + mode.getPercentSpeed() + "%)" +
-                ", strip=" + strip +
-                ", channels=" + channels +
-                '}';
+    public int hashCode() {
+        int result = host.hashCode();
+        result = 31 * result + mac.hashCode();
+        result = 31 * result + model.hashCode();
+        return result;
     }
 
     @Override
@@ -160,11 +172,91 @@ class LedController {
     }
 
     @Override
-    public int hashCode() {
-        int result = host.hashCode();
-        result = 31 * result + mac.hashCode();
-        result = 31 * result + model.hashCode();
-        return result;
+    public String toString() {
+        return "LedController{" +
+                "host='" + host + '\'' +
+                ", mac='" + mac + '\'' +
+                ", model='" + model + '\'' +
+                ", type=" + type +
+                ", power=" + power +
+                ", mode=" + mode + "(" + mode.getSpeed() + "-" + mode.getPercentSpeed() + "%)" +
+                ", strip=" + strip +
+                ", channels=" + channels +
+                '}';
+    }
+
+    public boolean setMode(FunctionalModeRgb mode) {
+        try {
+            OutputStream out = socket.getOutputStream();
+            DataOutputStream dos = new DataOutputStream(out);
+            byte[] command = mode.getCommand();
+            dos.write(command);
+            dos.flush();
+            return true;
+        } catch (IOException e) {
+            logger.error("Сокет не операбелен", e);
+            return false;
+        }
+    }
+
+    public void setPowerState(PowerState state) throws IOException {
+        OutputStream out = socket.getOutputStream();
+        InputStream in = socket.getInputStream();
+        DataOutputStream dos = new DataOutputStream(out);
+        byte[] command = state.getCommand();
+        dos.write(command);
+        dos.flush();
+        byte[] bytes = new byte[command.length];
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        int len;
+        while ((len = in.read(bytes)) > -1) {
+            baos.write(bytes, 0, len);
+            if (baos.size() == command.length) {
+                break;
+            }
+        }
+//        return Arrays.equals(baos.toByteArray(), command);
+    }
+
+    public void turnOn() throws IOException {
+        setPowerState(PowerState.ON);
+    }
+
+    public void turnOff() throws IOException {
+        setPowerState(PowerState.OFF);
+    }
+
+    public void setRGB(int r, int g, int b) throws IOException {
+        ControllerChannels newChannels = new ControllerChannels(
+                (int) (r / 100.0 * 255),
+                (int) (g / 100.0 * 255),
+                (int) (b / 100.0 * 255),
+                channels.getWw(),
+                channels.getCw()
+        );
+        setChannels(newChannels);
+    }
+
+    public void setCw(int percent) throws IOException {
+        ControllerChannels newChannels = new ControllerChannels(
+                channels.getR(),
+                channels.getG(),
+                channels.getB(),
+                channels.getWw(),
+                percent
+        );
+        setChannels(newChannels);
+    }
+
+    public void setWw(int percent) throws IOException {
+        ControllerChannels newChannels = new ControllerChannels(
+                channels.getR(),
+                channels.getG(),
+                channels.getB(),
+                percent,
+                channels.getCw()
+        );
+        setChannels(newChannels);
     }
 
     /**
@@ -189,106 +281,49 @@ class LedController {
      *
      * @return true if response parsed and correct, else false
      */
-    private boolean init() {
-        try {
-            OutputStream out = socket.getOutputStream();
-            InputStream in = socket.getInputStream();
-            DataOutputStream dos = new DataOutputStream(out);
-            dos.write(REQUEST_STATE_MSG);
-            dos.flush();
-            byte[] bytes = new byte[14];
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            int len;
-            while ((len = in.read(bytes)) > -1) {
-                baos.write(bytes, 0, len);
-                if (baos.size() >= 14) {
-                    break;
-                }
+    public void init() throws IOException {
+        OutputStream out = socket.getOutputStream();
+        InputStream in = socket.getInputStream();
+        DataOutputStream dos = new DataOutputStream(out);
+        dos.write(REQUEST_STATE_MSG);
+        dos.flush();
+        byte[] bytes = new byte[14];
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        int len;
+        while ((len = in.read(bytes)) > -1) {
+            baos.write(bytes, 0, len);
+            if (baos.size() >= 14) {
+                break;
             }
-
-            if (baos.size() != 14) {
-                logger.error("Received response message with incorrect length");
-                return false;
-            }
-            byte[] response = baos.toByteArray();
-            if ((response[0] != -0x7f) || (response[1] != 0x25)) {
-                logger.error("Wrong response message structure");
-                return false;
-            }
-
-            this.power = PowerState.get(response[2]);
-            this.mode = FunctionalModeRgb.get(response[3]);
-            this.mode.setSpeed(response[5]);
-            this.type = ControllerType.get(response[12]);
-            this.channels = new ControllerChannels(response[6], response[7], response[8], response[9], response[11]);
-            System.out.println(Hex.encodeHexString(response));
-            return true;
-
-
-        } catch (IOException e) {
-            logger.error("Socket is not operable", e);
-            return false;
-        }
-    }
-
-    private boolean setPowerState(PowerState state) {
-        try {
-            OutputStream out = socket.getOutputStream();
-            InputStream in = socket.getInputStream();
-            DataOutputStream dos = new DataOutputStream(out);
-            byte[] command = state.getCommand();
-            dos.write(command);
-            dos.flush();
-            byte[] bytes = new byte[command.length];
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            int len;
-            while ((len = in.read(bytes)) > -1) {
-                baos.write(bytes, 0, len);
-                if (baos.size() == command.length) {
-                    break;
-                }
-            }
-            return Arrays.equals(baos.toByteArray(), command);
-        } catch (IOException e) {
-            logger.error("Socket is not operable", e);
-            return false;
-        }
-    }
-
-    private boolean turnOn() {
-        return setPowerState(PowerState.ON);
-    }
-
-    private boolean turnOff() {
-        return setPowerState(PowerState.OFF);
-    }
-
-    public boolean setChannels(ControllerChannels channels) {
-        try {
-            OutputStream out = socket.getOutputStream();
-            DataOutputStream dos = new DataOutputStream(out);
-            byte[] command = channels.getChannelCommand();
-            dos.write(command);
-            dos.flush();
-            return true;
-        } catch (IOException e) {
-            logger.error("Сокет не операбелен", e);
-            return false;
-        }
-    }
-
-    public boolean setMode(FunctionalModeRgb mode) {
-        try {
-            OutputStream out = socket.getOutputStream();
-            DataOutputStream dos = new DataOutputStream(out);
-            byte[] command = mode.getCommand();
-            dos.write(command);
-            dos.flush();
-            return true;
-        } catch (IOException e) {
-            logger.error("Сокет не операбелен", e);
-            return false;
         }
 
+        if (baos.size() != 14) {
+            throw new RuntimeException("Received response message with incorrect length");
+        }
+        byte[] response = baos.toByteArray();
+        if ((response[0] != -0x7f) || (response[1] != 0x25)) {
+            throw new RuntimeException("Wrong response message structure");
+        }
+
+        this.power = PowerState.get(response[2]);
+        this.mode = FunctionalModeRgb.get(response[3]);
+        this.mode.setSpeed(response[5]);
+        this.type = ControllerType.get(response[12]);
+        this.channels = new ControllerChannels(response[6], response[7], response[8], response[9], response[11]);
+
+    }
+
+    public ControllerChannels getChannels() {
+        return channels;
+    }
+
+    public void setChannels(ControllerChannels channels) throws IOException {
+        logger.debug("Setup new channels: {}", channels);
+        OutputStream out = socket.getOutputStream();
+        DataOutputStream dos = new DataOutputStream(out);
+        byte[] command = channels.getChannelCommand();
+        dos.write(command);
+        dos.flush();
+        this.channels = channels;
     }
 }

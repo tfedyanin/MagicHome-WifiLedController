@@ -59,7 +59,7 @@ public class DiscoveryFinder implements ControllerFinder {
             logger.info("Provide discovery broadcast address as first argument. By default used 192.168.1.255");
         }
         DiscoveryFinder discovery = new DiscoveryFinderBuilder()
-                .discoveryAddress(args.length != 1 ? args[0] : "192.168.1.255")
+                .discoveryAddress(args.length > 0 ? args[0] : "192.168.1.255")
                 .build();
         Set<LedController> controllers = discovery.getControllers();
         controllers.forEach(it->logger.info(it.toString()));
@@ -99,7 +99,7 @@ public class DiscoveryFinder implements ControllerFinder {
         }
     }
 
-    private Set<LedController> listenDiscovery(DatagramSocket socket) {
+    private Set<LedController> listenDiscovery(DatagramSocket socket) throws IOException {
         ArrayList<DatagramPacket> datagramPackets = new ArrayList<>();
         logger.debug("Listening discovery responses for {}", discoveryAddress);
         while (true) {
@@ -120,7 +120,7 @@ public class DiscoveryFinder implements ControllerFinder {
         return parsePackets(datagramPackets);
     }
 
-    private Set<LedController> parsePackets(List<DatagramPacket> packets) {
+    private Set<LedController> parsePackets(List<DatagramPacket> packets) throws IOException {
         Set<LedController> controllers = new HashSet<>();
         logger.debug("Parsing {} response(s)", packets.size());
         for (DatagramPacket packet : packets) {
