@@ -5,7 +5,7 @@ plugins {
     id 'jacoco'
 }
 group 'org.openhab.binding'
-version '0.8.2'
+version '0.9.0'
 
 repositories {
     mavenCentral()
@@ -13,7 +13,8 @@ repositories {
 
 bintray {
     user = project.hasProperty('bintray_user')? bintray_user: System.getenv('bintray_user')
-    key = project.hasProperty('bintray_api_key')? bintray_user: System.getenv('bintray_api_key')
+    key = project.hasProperty('bintray_api_key')? bintray_api_key: System.getenv('bintray_api_key')
+    publications = ['release']
     pkg {
         repo = 'smart-home'
         name = project.name
