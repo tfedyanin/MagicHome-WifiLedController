@@ -14,11 +14,6 @@ before_install:
 script:
   - ./gradlew check
 
-deploy:
-  provider: script
-  script:  ./gradlew bintrayUpload
-  on:
-    branch: master
-
 after_success:
+  - test $TRAVIS_BRANCH = "master" && ./gradlew bintrayUpload
   - bash <(curl -s https://codecov.io/bash)
