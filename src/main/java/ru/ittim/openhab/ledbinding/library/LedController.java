@@ -36,29 +36,23 @@ public class LedController {
     private ControllerType type;
     private PowerState power;
     private FunctionalModeRgb mode;
-    private LedStripType strip;
-    private ControllerChannels channels = new ControllerChannels(0, 0, 0, 0, 0);
+    private ControllerChannels channels = ControllerChannels.fromPercents(0, 0, 0, 0, 0);
 
     /**
      * message exchange with controller
      */
     private Socket socket;
 
-    private LedController(String host, String mac, String model, LedStripType strip) throws IOException {
+    public LedController(String host, String mac, String model) throws IOException {
         this.host = host;
         this.mac = mac;
         this.model = model;
         this.type = ControllerType.UNKNOWN;
         this.power = PowerState.UNKNOWN;
         this.mode = FunctionalModeRgb.UNKNOWN;
-        this.strip = strip;
 
         socket = new Socket(host, DEFAULT_CONTROLLER_PORT);
         socket.setSoTimeout(TIMEOUT);
-    }
-
-    public LedController(String host, String mac, String model) throws IOException {
-        this(host, mac, model, LedStripType.UNKNOWN);
     }
 
     /**
@@ -108,7 +102,7 @@ public class LedController {
                 break;
             case "RANDOM":
                 final Random random = new Random();
-                Supplier<Integer> r = () -> random.nextInt(256);
+                Supplier<Integer> r = () -> random.nextInt(100);
                 controllers.forEach(it -> {
                     try {
                         it.turnOn();
@@ -116,7 +110,7 @@ public class LedController {
                         e.printStackTrace();
                     }
                     try {
-                        it.setChannels(new ControllerChannels(r.get(), r.get(), r.get(), r.get(), r.get()));
+                        it.setChannels(ControllerChannels.fromPercents(r.get(), r.get(), r.get(), r.get(), r.get()));
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -180,7 +174,6 @@ public class LedController {
                 ", type=" + type +
                 ", power=" + power +
                 ", mode=" + mode + "(" + mode.getSpeed() + "-" + mode.getPercentSpeed() + "%)" +
-                ", strip=" + strip +
                 ", channels=" + channels +
                 '}';
     }
@@ -227,10 +220,10 @@ public class LedController {
     }
 
     public void setRGB(int r, int g, int b) throws IOException {
-        ControllerChannels newChannels = new ControllerChannels(
-                (int) (r / 100.0 * 255),
-                (int) (g / 100.0 * 255),
-                (int) (b / 100.0 * 255),
+        ControllerChannels newChannels = ControllerChannels.fromPercents(
+                r,
+                g,
+                b,
                 channels.getWw(),
                 channels.getCw()
         );
@@ -238,7 +231,7 @@ public class LedController {
     }
 
     public void setCw(int percent) throws IOException {
-        ControllerChannels newChannels = new ControllerChannels(
+        ControllerChannels newChannels = ControllerChannels.fromPercents(
                 channels.getR(),
                 channels.getG(),
                 channels.getB(),
@@ -249,7 +242,7 @@ public class LedController {
     }
 
     public void setWw(int percent) throws IOException {
-        ControllerChannels newChannels = new ControllerChannels(
+        ControllerChannels newChannels = ControllerChannels.fromPercents(
                 channels.getR(),
                 channels.getG(),
                 channels.getB(),

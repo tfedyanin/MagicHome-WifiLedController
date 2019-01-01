@@ -34,53 +34,96 @@ public class ControllerChannels {
 
     /**
      * Costructor for create full state.
-     * @param r percent of red channel power.
-     * @param g percent of green channel power.
-     * @param b percent of blue channel power.
-     * @param ww percent of warn white channel power.
-     * @param cw percent of cold white channel power.
+     * @param r value of red channel power.
+     * @param g value of green channel power.
+     * @param b value of blue channel power.
+     * @param ww value of warn white channel power.
+     * @param cw value of cold white channel power.
      */
-    ControllerChannels(int r, int g, int b, int ww, int cw) {
-        this.r = (byte) r;
-        this.g = (byte) g;
-        this.b = (byte) b;
-        this.ww = (byte) ww;
-        this.cw = (byte) cw;
+    ControllerChannels(byte r, byte g, byte b, byte ww, byte cw) {
+        this.r = r;
+        this.g = g;
+        this.b = b;
+        this.ww = ww;
+        this.cw = cw;
+    }
+
+    /**
+     * Factory method for build channels from percents values.
+     * @param r red channel power in percents.
+     * @param g green channel power in percents.
+     * @param b blue channel power in percents.
+     * @param ww warn white channel power in percents.
+     * @param cw cold white channel power in percents.
+     * @return channels.
+     */
+    public static ControllerChannels fromPercents(int r, int g, int b, int ww, int cw) {
+        return new ControllerChannels(
+                fromPercent(r),
+                fromPercent(g),
+                fromPercent(b),
+                fromPercent(ww),
+                fromPercent(cw)
+        );
+    }
+
+    /**
+     * Convert percent value to byte value.
+     * @param p percent value.
+     * @return byte value: 0x00 from 0x00, 0xFF from 100%.
+     */
+    private static byte fromPercent(int p) {
+        if (p < 0){
+            throw new RuntimeException("Percent can't be lower than 0");
+        }
+        if (p > 100) {
+            throw new RuntimeException("Percent can't be greater than 100");
+        }
+        return (byte) (p / 100.0 * 255);
+    }
+
+    /**
+     * Convert byte value [0, 255] into percents.
+     * @param v byte values
+     * @return percent: 0% from 0x00, 100% from 0xFF.
+     */
+    private int toPercent(byte v){
+        return (int) ((v & 0XFF) / 255.0 * 100);
     }
 
     /**
      * @return red power in percents.
      */
     public int getR() {
-        return r & 0xFF;
+        return toPercent(r);
     }
 
     /**
      * @return green power in percents.
      */
     public int getG() {
-        return g & 0xFF;
+        return toPercent(g);
     }
 
     /**
      * @return blue power in percents.
      */
     public int getB() {
-        return b & 0xFF;
+        return toPercent(b);
     }
 
     /**
      * @return warn white power in percents.
      */
     public int getWw() {
-        return ww & 0xFF;
+        return toPercent(ww);
     }
 
     /**
      * @return cold white power in percents.
      */
     public int getCw() {
-        return cw & 0xFF;
+        return toPercent(cw);
     }
 
     @Override
@@ -97,9 +140,9 @@ public class ControllerChannels {
     /**
      * Generate commands for rgb channels and ww-cw channels and aggregate its in one command.
      *
-     * @return command for set rgb-ww-cw channels
+     * @return command for set rgb-ww-cw channels.
      *
-     * @throws IOException
+     * @throws IOException when error in interaction with {@link ByteArrayOutputStream}.
      */
     byte[] getChannelCommand() throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -111,11 +154,11 @@ public class ControllerChannels {
     /**
      * Prepare command to set rgb channels.
      *
-     * @param r - red color (1 channel)
-     * @param g - green color (2 channel)
-     * @param b - blue color (3 channel)
+     * @param r - red color (1 channel).
+     * @param g - green color (2 channel).
+     * @param b - blue color (3 channel).
      *
-     * @return rgb command
+     * @return rgb command.
      */
     private static byte[] rgbCommand(byte r, byte g, byte b) {
         byte[] command = new byte[8];
@@ -131,12 +174,12 @@ public class ControllerChannels {
     }
 
     /**
-     * Prepare command to set rgb channels
+     * Prepare command to set rgb channels.
      *
-     * @param ww - warn white (4 channel)
-     * @param cw - cold  white (5 channel)
+     * @param ww - warn white (4 channel).
+     * @param cw - cold  white (5 channel).
      *
-     * @return ww-cw command
+     * @return ww-cw command.
      */
     private static byte[] wwcwCommand(byte ww, byte cw) {
         byte[] command = new byte[8];

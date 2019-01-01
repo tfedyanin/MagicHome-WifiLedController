@@ -1,20 +1,35 @@
 plugins {
-    id 'java-library'
+    id 'java'
+    id 'maven-publish'
+    id "com.jfrog.bintray" version "1.8.4"
     id 'jacoco'
 }
-group 'ru.ittim.openhab'
+group 'org.openhab.binding'
 version '0.8.2'
 
 repositories {
     mavenCentral()
 }
 
+bintray {
+    user = bintray_user
+    key = bintray_api_key
+    pkg {
+        repo = 'smart-home'
+        name = project.name
+        licenses = ['Apache-2.0']
+        vcsUrl = 'https://github.com/tfedyanin/MagicHome-WifiLedController.git'
+        version {
+            name = project.version
+        }
+    }
+}
+
 dependencies {
     compile 'org.slf4j:slf4j-api:1.7+'
-    runtime 'ch.qos.logback:logback-classic:1.2+'
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.1.0'
-
+    testCompile 'org.junit.jupiter:junit-jupiter-api:5.1.0'
+    testRuntimeOnly 'ch.qos.logback:logback-classic:1.2+'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.1.0'
 }
 test {
@@ -38,3 +53,12 @@ task sourcesJar(type: Jar, dependsOn: classes) {
 }
 jar.dependsOn sourcesJar
 check.dependsOn jacocoTestReport
+
+publishing {
+    publications {
+        release(MavenPublication) {
+            from components.java
+            artifact sourcesJar
+        }
+    }
+}
