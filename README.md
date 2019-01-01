@@ -1,8 +1,8 @@
 [![Build Status](https://travis-ci.com/tfedyanin/MagicHome-WifiLedController.svg?branch=master)](https://travis-ci.com/tfedyanin/MagicHome-WifiLedController)
 [![codecov](https://codecov.io/gh/tfedyanin/MagicHome-WifiLedController/branch/master/graph/badge.svg)](https://codecov.io/gh/tfedyanin/MagicHome-WifiLedController)
-
+[ ![Download](https://api.bintray.com/packages/tfedyanin/smart-home/jmagichome/images/download.svg) ](https://bintray.com/tfedyanin/smart-home/jmagichome/_latestVersion)
 # JMagicHome
-Library and OpenHAB2 binding for 
+Library for [OpenHAB2 binding](https://github.com/tfedyanin/magichomeled-oh2.git) for 
 <img src="readme/controller.jpg" width="400" height="400" alt="Фото контроллера" title="Именно такой контроллер использую я"/>
 
 # Subprojects

@@ -74,7 +74,7 @@ public enum FunctionalModeRgb {
      */
     public FunctionalModeRgb setPercentSpeed(int speed) {
         if ((speed < 0) || (speed > 100)) {
-            throw new IllegalArgumentException("Скорость должяна быть в интервале [0, 100]");
+            throw new IllegalArgumentException("Speed must be in interval [0, 100]");
         }
         this.speed = -(speed * 3 / 10 - 31);
         return this;
@@ -89,6 +89,6 @@ public enum FunctionalModeRgb {
             command[3] = 0x0f;
             return Utils.withCheckSum(command);
         }
-        throw new UnsupportedOperationException("Для данного мода не сущетвует команды");
+        throw new UnsupportedOperationException("Command doesn't exist for this mode");
     }
 }
